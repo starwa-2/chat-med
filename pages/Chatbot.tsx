@@ -1,9 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, Info, RefreshCw, Image as ImageIcon, X, Camera } from 'lucide-react';
-import { Sender, Message, ChatSession, RiskLevel } from '../types';
-import { medicalService } from '../services/geminiService';
-import MessageBubble from '../components/Chat/MessageBubble';
+import { Sender, Message, ChatSession, RiskLevel } from '../types.ts';
+import { medicalService } from '../services/geminiService.ts';
+import MessageBubble from '../components/Chat/MessageBubble.tsx';
 
 interface ChatbotProps {
   session: ChatSession;
@@ -34,7 +34,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
       };
       reader.readAsDataURL(file);
     }
-    // Reset input value so same file can be selected again
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -48,7 +47,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
     setInput('');
     setSelectedImage(null);
     
-    // 1. Add User Message
     const userMessage: Message = {
       id: Date.now().toString(),
       text: userText,
@@ -63,17 +61,18 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
     setLoading(true);
 
     try {
-      // 2. Risk Detection (Local Logic)
       const risk = medicalService.analyzeRisk(userText);
       
-      // 3. Get AI Response
       const historyForAI = updatedMessages.map(m => {
         const parts: any[] = [{ text: m.text }];
         if (m.imageData) {
+          const base64Data = m.imageData.includes('base64,') 
+            ? m.imageData.split('base64,')[1] 
+            : m.imageData;
           parts.push({
             inlineData: {
               mimeType: "image/jpeg",
-              data: m.imageData.split('base64,')[1]
+              data: base64Data
             }
           });
         }
@@ -83,7 +82,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
         };
       });
 
-      const aiResponseText = await medicalService.generateMedicalGuidance(userText, historyForAI, imageToUpload || undefined);
+      const aiResponseText = await medicalService.generateMedicalGuidance(historyForAI);
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -109,7 +108,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] max-w-4xl mx-auto w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mt-4">
-      {/* Header */}
       <div className="px-6 py-4 border-b border-slate-100 bg-white flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
@@ -133,7 +131,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
         </div>
       </div>
 
-      {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-50/50">
         {session.messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
@@ -162,9 +159,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
         )}
       </div>
 
-      {/* Image Preview Area */}
       {selectedImage && (
-        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center space-x-4 animate-in slide-in-from-bottom-2">
+        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center space-x-4">
           <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-blue-500 shadow-sm">
             <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
             <button 
@@ -181,7 +177,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
         </div>
       )}
 
-      {/* Input */}
       <div className="p-4 bg-white border-t border-slate-100">
         <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
           <input 

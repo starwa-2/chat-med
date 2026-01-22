@@ -1,15 +1,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-// Fix missing icon imports for History, MessageSquare, and Activity
 import { History, MessageSquare, Activity } from 'lucide-react';
-import Navbar from './components/Navbar';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Chatbot from './pages/Chatbot';
-import Appointment from './pages/Appointment';
-import Admin from './pages/Admin';
-import { User, ChatSession, Message, RiskLevel, UserRole } from './types';
+import Navbar from './components/Navbar.tsx';
+import Login from './pages/Login.tsx';
+import Register from './pages/Register.tsx';
+import Dashboard from './pages/Dashboard.tsx';
+import Chatbot from './pages/Chatbot.tsx';
+import Appointment from './pages/Appointment.tsx';
+import Admin from './pages/Admin.tsx';
+import { User, ChatSession, Message, RiskLevel, UserRole } from './types.ts';
 
 const STORAGE_KEY_USER = 'healthai_user';
 const STORAGE_KEY_SESSIONS = 'healthai_sessions';
@@ -26,7 +25,6 @@ const App: React.FC = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [prefilledSymptoms, setPrefilledSymptoms] = useState('');
 
-  // Initial Data Load
   useEffect(() => {
     const savedUser = localStorage.getItem(STORAGE_KEY_USER);
     const savedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
@@ -40,7 +38,6 @@ const App: React.FC = () => {
     if (savedAllUsers) {
       setAllUsers(JSON.parse(savedAllUsers));
     } else {
-      // Mock some users if none exist for the admin panel
       const initialUsers = [
         { id: 'admin-1', fullName: 'System Admin', email: 'admin@healthai.com', phone: '000-0000', role: UserRole.ADMIN },
         { id: 'u-1', fullName: 'Sarah Parker', email: 'sarah@example.com', phone: '555-1234', role: UserRole.USER }
@@ -50,7 +47,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Persistence
   useEffect(() => {
     if (user) localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
     else localStorage.removeItem(STORAGE_KEY_USER);
@@ -69,7 +65,6 @@ const App: React.FC = () => {
   }, [allUsers]);
 
   const handleLogin = (email: string, fullName: string) => {
-    // Check if user exists in our mock database
     const existing = allUsers.find(u => u.email === email);
     if (existing) {
       setUser(existing);
@@ -142,7 +137,6 @@ const App: React.FC = () => {
       : <Login onLogin={handleLogin} onNavigateToRegister={() => setIsRegistering(true)} />;
   }
 
-  // Filter sessions and appointments for the current user
   const userSessions = sessions.filter(s => s.userId === user.id);
   const userAppointments = appointments.filter(a => a.userId === user.id);
 
@@ -213,7 +207,6 @@ const App: React.FC = () => {
               {userSessions.length === 0 ? (
                 <div className="bg-white p-16 rounded-2xl text-center border border-slate-200 shadow-sm">
                   <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-                    {/* Shadowed global History interface with imported Lucide icon component */}
                     <History size={32} />
                   </div>
                   <h3 className="text-lg font-bold text-slate-800">No History Yet</h3>
@@ -231,7 +224,6 @@ const App: React.FC = () => {
                   >
                     <div className="flex items-center space-x-4">
                       <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600">
-                        {/* Use imported MessageSquare icon component */}
                         <MessageSquare size={24} />
                       </div>
                       <div>
@@ -275,7 +267,6 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex items-center space-x-2 text-slate-500">
-              {/* Use imported Activity icon component */}
               <Activity size={18} className="text-blue-600" />
               <span className="text-sm font-bold text-slate-900">HealthAI</span>
               <span className="text-slate-300">|</span>

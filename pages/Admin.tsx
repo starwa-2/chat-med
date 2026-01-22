@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Users, MessageSquare, ShieldAlert, BarChart3, Search, Eye } from 'lucide-react';
 import { User, ChatSession, Message } from '../types';
+// Fixed import path to match the file structure components/Chat/MessageBubble.tsx
 import MessageBubble from '../components/Chat/MessageBubble';
 
 interface AdminProps {
@@ -46,7 +47,6 @@ const Admin: React.FC<AdminProps> = ({ users, sessions }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* User Table */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
             <h3 className="font-bold text-slate-900">Registered Users</h3>
@@ -93,7 +93,6 @@ const Admin: React.FC<AdminProps> = ({ users, sessions }) => {
           </div>
         </div>
 
-        {/* Recent Sessions */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
             <h3 className="font-bold text-slate-900">Recent Logs</h3>
@@ -126,7 +125,6 @@ const Admin: React.FC<AdminProps> = ({ users, sessions }) => {
         </div>
       </div>
 
-      {/* Session Modal */}
       {selectedSession && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
           <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
