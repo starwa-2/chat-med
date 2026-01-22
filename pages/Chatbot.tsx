@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Info, RefreshCw, Image as ImageIcon, X, Camera } from 'lucide-react';
+import { Send, Loader2, Info, RefreshCw, Image as ImageIcon, X, Camera, AlertCircle } from 'lucide-react';
 import { Sender, Message, ChatSession, RiskLevel } from '../types.ts';
 import { medicalService } from '../services/geminiService.ts';
 import MessageBubble from '../components/Chat/MessageBubble.tsx';
@@ -86,21 +86,22 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: aiResponseText || "I'm sorry, I couldn't process that. Please try rephrasing your symptoms.",
+        text: aiResponseText,
         sender: Sender.BOT,
         timestamp: Date.now(),
         isEmergency: risk.level === RiskLevel.HIGH
       };
 
       onUpdateSession({ ...session, messages: [...updatedMessages, botMessage] });
-    } catch (error) {
-      const errorMessage: Message = {
+    } catch (error: any) {
+      const botErrorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "System Error: Unable to connect to the medical knowledge base. Please check your internet connection.",
+        text: `Error: ${error.message || "Failed to connect to HealthAI. Please check your configuration."}`,
         sender: Sender.BOT,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        isEmergency: true
       };
-      onUpdateSession({ ...session, messages: [...updatedMessages, errorMessage] });
+      onUpdateSession({ ...session, messages: [...updatedMessages, botErrorMessage] });
     } finally {
       setLoading(false);
     }
@@ -117,7 +118,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
             <h3 className="font-bold text-slate-900">HealthBot Assistant</h3>
             <div className="flex items-center text-[10px] text-green-500 font-bold uppercase tracking-wider">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
-              Ready to Help
+              Live Connection
             </div>
           </div>
         </div>
@@ -135,13 +136,11 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
         {session.messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
             <div className="bg-blue-50 p-4 rounded-full mb-4">
-              <ImageIcon size={32} className="text-blue-500" />
+              <ActivityIcon size={32} className="text-blue-500" />
             </div>
-            <h4 className="text-lg font-bold text-slate-900 mb-2">Symptom Analysis</h4>
+            <h4 className="text-lg font-bold text-slate-900 mb-2">How are you feeling today?</h4>
             <p className="text-slate-500 max-w-sm">
-              Describe your symptoms or <b>upload a clear photo</b> of a visible condition (like a rash or swelling) for an AI-powered analysis.
-              <br/><br/>
-              <span className="italic text-xs font-medium">Example: "I have this red rash on my arm, what could it be?"</span>
+              Describe your symptoms or upload a photo of a visible condition for immediate AI-powered guidance.
             </p>
           </div>
         ) : (
@@ -153,7 +152,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
           <div className="flex justify-start mb-4">
             <div className="bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm flex items-center space-x-2">
               <Loader2 size={16} className="animate-spin text-blue-600" />
-              <span className="text-sm text-slate-500 italic">Bot is analyzing symptoms...</span>
+              <span className="text-sm text-slate-500 italic">Consulting medical database...</span>
             </div>
           </div>
         )}
@@ -171,8 +170,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
             </button>
           </div>
           <div className="flex-1">
-            <p className="text-xs font-bold text-slate-700">Image selected</p>
-            <p className="text-[10px] text-slate-500">Add context in the message below</p>
+            <p className="text-xs font-bold text-slate-700">Image attached</p>
+            <p className="text-[10px] text-slate-500">The AI will analyze this photo for visible symptoms.</p>
           </div>
         </div>
       )}
@@ -190,7 +189,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className={`p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all ${selectedImage ? 'text-blue-600 bg-blue-50 border-blue-200' : ''}`}
-            title="Upload symptom photo"
           >
             <Camera size={20} />
           </button>
@@ -200,30 +198,36 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={selectedImage ? "Describe this symptom..." : "Type your symptoms here..."}
+              placeholder="Describe your symptoms..."
               className="w-full pl-4 pr-12 py-3 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-sm"
             />
             <button
               type="submit"
               disabled={(!input.trim() && !selectedImage) || loading}
-              className="absolute right-2 top-1.5 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="absolute right-2 top-1.5 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               <Send size={18} />
             </button>
           </div>
         </form>
         <div className="mt-3 flex items-center justify-between text-[10px] text-slate-400">
-          <span className="flex items-center"><Info size={10} className="mr-1"/> Multimodal Analysis Enabled</span>
+          <span className="flex items-center"><Info size={10} className="mr-1"/> AI analysis in progress</span>
           <button 
-            onClick={() => onBookAppointment(input || "Consultation with symptom photo")} 
+            onClick={() => onBookAppointment(input || "Consultation request")} 
             className="text-blue-500 hover:underline font-medium"
           >
-            Need a doctor? Book Appointment
+            Find a doctor
           </button>
         </div>
       </div>
     </div>
   );
 };
+
+const ActivityIcon = ({ size, className }: { size: number, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+  </svg>
+);
 
 export default Chatbot;

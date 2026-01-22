@@ -1,52 +1,65 @@
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_PROMPT, EMERGENCY_KEYWORDS } from "../constants.ts";
 import { RiskLevel } from "../types.ts";
 
 export class GeminiService {
   /**
    * Generates medical guidance using the Google Gemini API.
-   * Requires process.env.API_KEY to be set in the environment.
+   * Uses process.env.API_KEY which must be pre-configured.
    */
   async generateMedicalGuidance(
     chatHistory: { role: string; parts: { text?: string; inlineData?: any }[] }[]
   ) {
-    // Creating a fresh instance for every request as per the guidelines
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const apiKey = process.env.API_KEY;
+
+    if (!apiKey || apiKey === "undefined" || apiKey.trim() === "") {
+      throw new Error("API_KEY_MISSING: The Gemini API key is not configured in your environment. Please add it to your project settings.");
+    }
+
+    // Creating a fresh instance to ensure we use the latest injected key
+    const ai = new GoogleGenAI({ apiKey });
     
     try {
+      // Using gemini-3-flash-preview as the primary task-specific model
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: chatHistory,
         config: {
           systemInstruction: SYSTEM_PROMPT,
           temperature: 0.7,
-          topP: 0.95,
-          topK: 40,
         },
       });
 
-      // The .text property directly returns the generated string
-      if (!response.text) {
-        throw new Error("Empty response from AI");
+      if (!response || !response.text) {
+        throw new Error("The AI returned an empty response. This can happen due to safety filters or connection interruptions.");
       }
 
       return response.text;
     } catch (error: any) {
-      console.error("Gemini API Error:", error);
+      console.error("Gemini API detailed error:", error);
       
-      // Provide a helpful error message if the API key is missing
-      if (error.message?.includes("API_KEY") || !process.env.API_KEY) {
-        throw new Error("API Key Missing: Please ensure the API_KEY environment variable is configured to receive actual AI responses.");
+      // Extract specific error messages from the API response
+      const errorMessage = error.message || String(error);
+      
+      if (errorMessage.includes("401") || errorMessage.includes("API key not valid")) {
+        throw new Error("INVALID_API_KEY: The provided Gemini API key is invalid. Please check your key at ai.google.dev.");
       }
       
-      throw new Error("The medical assistant is temporarily unavailable. Please try again in a moment.");
+      if (errorMessage.includes("404") || errorMessage.includes("model not found")) {
+        throw new Error(`MODEL_NOT_FOUND: The model 'gemini-3-flash-preview' was not found or is not available in your region.`);
+      }
+
+      if (errorMessage.includes("429") || errorMessage.includes("quota")) {
+        throw new Error("QUOTA_EXCEEDED: You have reached the rate limit for the free Gemini API tier.");
+      }
+      
+      throw new Error(`API_ERROR: ${errorMessage}`);
     }
   }
 
   /**
-   * Analyzes text for emergency keywords and symptom severity to assign a risk level.
-   * This runs locally for instant feedback.
+   * Analyzes text for emergency keywords and symptom severity locally.
    */
   analyzeRisk(text: string): { level: RiskLevel; confidence: number } {
     const lowerText = text.toLowerCase();
@@ -56,7 +69,7 @@ export class GeminiService {
       return { level: RiskLevel.HIGH, confidence: 0.95 };
     }
     
-    const mediumKeywords = ['fever', 'pain', 'rash', 'vomiting', 'diarrhea', 'cough', 'headache', 'dizzy'];
+    const mediumKeywords = ['fever', 'pain', 'rash', 'vomiting', 'diarrhea', 'cough', 'headache', 'dizzy', 'nausea'];
     const mediumMatches = mediumKeywords.filter(keyword => lowerText.includes(keyword));
     
     if (mediumMatches.length >= 2) {
