@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Info, RefreshCw, Image as ImageIcon, X, Camera, AlertCircle } from 'lucide-react';
+import { Send, Loader2, Info, RefreshCw, MapPin, X, Camera } from 'lucide-react';
 import { Sender, Message, ChatSession, RiskLevel } from '../types.ts';
 import { medicalService } from '../services/geminiService.ts';
 import MessageBubble from '../components/Chat/MessageBubble.tsx';
@@ -16,8 +16,25 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Request location on load to provide better specialist suggestions
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        (error) => console.log("Location access denied or unavailable:", error.message),
+        { enableHighAccuracy: true }
+      );
+    }
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -82,21 +99,25 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
         };
       });
 
-      const aiResponseText = await medicalService.generateMedicalGuidance(historyForAI);
+      const response = await medicalService.generateMedicalGuidance(
+        historyForAI, 
+        userLocation || undefined
+      );
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: aiResponseText,
+        text: response.text,
         sender: Sender.BOT,
         timestamp: Date.now(),
-        isEmergency: risk.level === RiskLevel.HIGH
+        isEmergency: risk.level === RiskLevel.HIGH,
+        groundingUrls: response.groundingUrls
       };
 
       onUpdateSession({ ...session, messages: [...updatedMessages, botMessage] });
     } catch (error: any) {
       const botErrorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: `Error: ${error.message || "Failed to connect to HealthAI. Please check your configuration."}`,
+        text: `Error: ${error.message || "Failed to connect to HealthAI."}`,
         sender: Sender.BOT,
         timestamp: Date.now(),
         isEmergency: true
@@ -116,9 +137,17 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
           </div>
           <div>
             <h3 className="font-bold text-slate-900">HealthBot Assistant</h3>
-            <div className="flex items-center text-[10px] text-green-500 font-bold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
-              Live Connection
+            <div className="flex items-center text-[10px] space-x-2">
+              <span className="flex items-center text-green-500 font-bold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
+                AI Active
+              </span>
+              {userLocation && (
+                <span className="flex items-center text-blue-500 font-bold uppercase tracking-wider">
+                  <MapPin size={10} className="mr-1" />
+                  Nearby Mode
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -138,9 +167,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
             <div className="bg-blue-50 p-4 rounded-full mb-4">
               <ActivityIcon size={32} className="text-blue-500" />
             </div>
-            <h4 className="text-lg font-bold text-slate-900 mb-2">How are you feeling today?</h4>
+            <h4 className="text-lg font-bold text-slate-900 mb-2">How can I help you?</h4>
             <p className="text-slate-500 max-w-sm">
-              Describe your symptoms or upload a photo of a visible condition for immediate AI-powered guidance.
+              Describe your symptoms. I can suggest immediate care and find nearby specialists in your area.
             </p>
           </div>
         ) : (
@@ -152,7 +181,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
           <div className="flex justify-start mb-4">
             <div className="bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm flex items-center space-x-2">
               <Loader2 size={16} className="animate-spin text-blue-600" />
-              <span className="text-sm text-slate-500 italic">Consulting medical database...</span>
+              <span className="text-sm text-slate-500 italic font-medium">Checking medical databases & nearby clinics...</span>
             </div>
           </div>
         )}
@@ -198,7 +227,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Describe your symptoms..."
+              placeholder="E.g., I have severe abdominal pain and I'm in Downtown..."
               className="w-full pl-4 pr-12 py-3 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-sm"
             />
             <button
@@ -211,10 +240,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ session, onUpdateSession, onNewSessio
           </div>
         </form>
         <div className="mt-3 flex items-center justify-between text-[10px] text-slate-400">
-          <span className="flex items-center"><Info size={10} className="mr-1"/> AI analysis in progress</span>
+          <span className="flex items-center font-medium"><Info size={10} className="mr-1"/> AI uses Google Maps for suggestions</span>
           <button 
             onClick={() => onBookAppointment(input || "Consultation request")} 
-            className="text-blue-500 hover:underline font-medium"
+            className="text-blue-500 hover:underline font-bold uppercase tracking-tight"
           >
             Find a doctor
           </button>

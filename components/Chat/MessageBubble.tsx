@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Sender, Message } from '../../types';
-import { AlertCircle, User as UserIcon, Bot, Eye } from 'lucide-react';
+import { AlertCircle, User as UserIcon, Bot, Eye, MapPin, ExternalLink } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
@@ -51,6 +51,28 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           <div className="text-sm whitespace-pre-wrap leading-relaxed">
             {message.text}
           </div>
+
+          {message.groundingUrls && message.groundingUrls.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center">
+                <MapPin size={10} className="mr-1" /> Nearby Suggestions
+              </p>
+              <div className="grid grid-cols-1 gap-2">
+                {message.groundingUrls.map((chunk, idx) => (
+                  <a 
+                    key={idx}
+                    href={chunk.uri}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-2 rounded-lg bg-blue-50 border border-blue-100 text-blue-700 hover:bg-blue-100 transition-colors group"
+                  >
+                    <span className="text-xs font-semibold truncate mr-2">{chunk.title}</span>
+                    <ExternalLink size={12} className="flex-shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
           
           <div className={`text-[10px] mt-2 opacity-60 ${isUser ? 'text-right' : 'text-left'}`}>
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
