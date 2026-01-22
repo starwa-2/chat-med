@@ -27,8 +27,9 @@
       }
     </style>
     <script>
-      // Shim process.env for the browser to prevent crashes
-      window.process = window.process || { env: { API_KEY: '' } };
+      // Ensure process.env exists for the SDK, but don't overwrite if already provided by environment
+      window.process = window.process || {};
+      window.process.env = window.process.env || {};
     </script>
     <script type="importmap">
 {
@@ -44,7 +45,6 @@
 </head>
   <body>
     <div id="root"></div>
-    <!-- Entry point for the application -->
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>
