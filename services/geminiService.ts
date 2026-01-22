@@ -1,5 +1,5 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { SYSTEM_PROMPT, EMERGENCY_KEYWORDS } from "../constants.ts";
 import { RiskLevel } from "../types.ts";
 
@@ -11,8 +11,11 @@ export class GeminiService {
   async generateMedicalGuidance(
     chatHistory: { role: string; parts: { text?: string; inlineData?: any }[] }[]
   ) {
-    const apiKey = process.env.API_KEY;
+    const apiKey = import.meta.env.VITE_API_KEY;
     const lastUserMessage = chatHistory[chatHistory.length - 1]?.parts[0]?.text || "";
+
+    console.log("API Key present:", !!apiKey);
+    console.log("API Key length:", apiKey?.length);
 
     // If no API Key is provided, use Mock Mode for demonstration
     if (!apiKey || apiKey === "undefined" || apiKey.length < 10) {
@@ -21,19 +24,18 @@ export class GeminiService {
     }
 
     try {
-      // Using gemini-3-flash-preview for fast and intelligent medical guidance.
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: chatHistory,
-        config: {
-          systemInstruction: SYSTEM_PROMPT,
-          temperature: 0.7,
-        },
-      });
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-      return response.text;
+      const prompt = SYSTEM_PROMPT + "\n\nUser: " + lastUserMessage;
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      console.log("Gemini API Success:", text.substring(0, 100) + "...");
+      return text;
     } catch (error) {
+      console.error("Gemini API Error details:", error);
+      console.error("Error message:", error.message);
       console.error("Gemini API Error, falling back to Mock:", error);
       return this.generateMockResponse(lastUserMessage);
     }
