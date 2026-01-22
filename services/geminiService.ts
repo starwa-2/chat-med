@@ -11,7 +11,7 @@ export class GeminiService {
   async generateMedicalGuidance(
     chatHistory: { role: string; parts: { text?: string; inlineData?: any }[] }[]
   ) {
-    const apiKey = process.env.API_KEY;
+    const apiKey = import.meta.env.VITE_API_KEY;
 
     if (!apiKey || apiKey === "undefined" || apiKey.trim() === "") {
       throw new Error("API_KEY_MISSING: The Gemini API key is not configured in your environment. Please add it to your project settings.");
