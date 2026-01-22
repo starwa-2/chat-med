@@ -3,6 +3,7 @@
   "description": "An intelligent healthcare chatbot providing instant medical guidance, symptom analysis, and appointment scheduling assistance using Gemini AI.",
   "requestFramePermissions": [
     "microphone",
-    "camera"
+    "camera",
+    "geolocation"
   ]
 }

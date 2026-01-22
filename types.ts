@@ -9,6 +9,11 @@ export enum UserRole {
   ADMIN = 'admin'
 }
 
+export interface GroundingChunk {
+  title: string;
+  uri: string;
+}
+
 export interface Message {
   id: string;
   text: string;
@@ -16,6 +21,7 @@ export interface Message {
   timestamp: number;
   isEmergency?: boolean;
   imageData?: string; // Base64 encoded image data
+  groundingUrls?: GroundingChunk[];
 }
 
 export interface ChatSession {
